@@ -53,6 +53,56 @@ public class CPUInstruction {
         findCommand();
 
         addressedValue = getValueWithAddressingMode(mainBus, cpuRegisterState);
+        addCyclesIfBranch();
+    }
+
+    private void addCyclesIfBranch() {
+        CPURegisterState cpuRegisters = cpu.getRegisters();
+        switch (opcodeAssembly) {
+            case "BCC":
+                if (cpuRegisters.getStatusC() == 0) {
+                    numCycles += getCyclesDependingOnBranchPage();
+                }
+            case "BCS":
+                if (cpuRegisters.getStatusC() == 1) {
+                    numCycles += getCyclesDependingOnBranchPage();
+                }
+            case "BEQ":
+                if (cpuRegisters.getStatusZ() == 1) {
+                    numCycles += getCyclesDependingOnBranchPage();
+                }
+            case "BMI":
+                if (cpuRegisters.getStatusN() == 1) {
+                    numCycles += getCyclesDependingOnBranchPage();
+                }
+            case "BNE":
+                if (cpuRegisters.getStatusZ() == 0) {
+                    numCycles += getCyclesDependingOnBranchPage();
+                }
+            case "BPL":
+                if (cpuRegisters.getStatusN() == 0) {
+                    numCycles += getCyclesDependingOnBranchPage();
+                }
+            case "BVC":
+                if (cpuRegisters.getStatusV() == 0) {
+                    numCycles += getCyclesDependingOnBranchPage();
+                }
+            case "BVS":
+                if (cpuRegisters.getStatusV() == 1) {
+                    numCycles += getCyclesDependingOnBranchPage();
+                }
+                break;
+        }
+    }
+
+    private int getCyclesDependingOnBranchPage() {
+        CPURegisterState cpuRegisters = cpu.getRegisters();
+        if ((addressedValue.address & 0xFF00) == (cpuRegisters.PC & 0xFF00)) {
+            // branch occurs on same page
+            return 1;
+        } else {
+            return 2;
+        }
     }
 
     // NOTE: we are reading in the first cycle so there is a chance that the PPU registers update when we actually need to read at the end
@@ -954,6 +1004,7 @@ public class CPUInstruction {
                 break;
             case "BRK":
                 CPUInstructionList.BRK(cpu, addressedValue, addressingMode);
+                updatePC = false;
                 break;
             case "BVC":
                 CPUInstructionList.BVC(cpu, addressedValue, addressingMode);

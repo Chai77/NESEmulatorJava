@@ -24,8 +24,8 @@ public class App {
         CPU cpu = new CPU();
         
         
-        String[] hexArr = new String[0x85];
-        for (int i = 0; i <= 0x84; i++) {
+        String[] hexArr = new String[0x100];
+        for (int i = 0; i <= 0xFF; i++) {
             String hex = Integer.toHexString(i);
             if (hex.length() < 2) {
                 hex = "0" + hex; // Add leading zero if necessary
@@ -35,8 +35,8 @@ public class App {
 
         int[][] results = new int[hexArr.length][2];
 
+        // for (int i = 0; i < 1; i++) {
         for (int i = 0; i < hexArr.length; i++) {
-        // for (int i = 0x60; i < hexArr.length; i++) {
             System.out.println("Running tests for opcode " + hexArr[i]);
             int[] testsPassed = runTestForOpcode(cpu, hexArr[i]);
             System.out.println(testsPassed[0] + "/" + testsPassed[1] + " for opcode " + hexArr[i]);
@@ -61,7 +61,7 @@ public class App {
     }
 
     public static int[] runTestForOpcode(CPU cpu, String opcode)  throws IOException, ParseException {
-        String filename = "/home/chaitanya/Documents/Projects/NES_Emulator/test/" + opcode + ".json";
+        String filename = "/home/chaitanyae/Documents/Projects/NESEmulatorJava/test/" + opcode + ".json";
         JSONParser parser = new JSONParser();
         Reader reader = new FileReader(filename);
 

@@ -164,13 +164,9 @@ public class CPUInstructionList {
     }
 
     public static void BRK(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
-        // TODO: implement break, which creates an interrupt with the return being the next instruction
-        // Need to implement interrupt logic first
-        // interrupt disable flag might be set
-        // something with the B flag too
-
         CPURegisterState cpuRegisterState = cpu.getRegisters();
         CPUStack cpuStack = cpu.getCpuStack();
+        MainBus mainBus = cpu.getMainBus();
     
 
         int PC_pushed = cpuRegisterState.PC + 2;
@@ -182,6 +178,9 @@ public class CPUInstructionList {
         cpuRegisterState.setStatusI(1);
 
         // TODO: make interrupt happen
+        int lower = mainBus.readByte(0xFFFE);
+        int higher = (mainBus.readByte(0xFFFF) << 8) & 0xFF00;
+        cpuRegisterState.PC = higher | lower;
     }
 
     public static void BVC(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
@@ -238,34 +237,52 @@ public class CPUInstructionList {
     public static void CMP(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
         CPURegisterState cpuRegisterState = cpu.getRegisters();
 
-        int result = subtract(cpuRegisterState, cpuRegisterState.A, addressingResult.value, 1, false);
+        int result = (cpuRegisterState.A - addressingResult.value) & 0xFF;
+
+        int carry_bit = 0;
+        if (cpuRegisterState.A >= addressingResult.value) {
+            carry_bit = 1;
+        }
 
         updateStatusFlags(cpuRegisterState, result);
+        cpuRegisterState.setStatusC(carry_bit);
     }
 
     // compare
     public static void CPX(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
         CPURegisterState cpuRegisterState = cpu.getRegisters();
 
-        int result = subtract(cpuRegisterState, cpuRegisterState.X, addressingResult.value, 1, false);
+        int result = (cpuRegisterState.X - addressingResult.value) & 0xFF;
+
+        int carry_bit = 0;
+        if (cpuRegisterState.X >= addressingResult.value) {
+            carry_bit = 1;
+        }
 
         updateStatusFlags(cpuRegisterState, result);
+        cpuRegisterState.setStatusC(carry_bit);
     }
 
     // compare
     public static void CPY(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
         CPURegisterState cpuRegisterState = cpu.getRegisters();
 
-        int result = subtract(cpuRegisterState, cpuRegisterState.Y, addressingResult.value, 1, false);
+        int result = (cpuRegisterState.Y - addressingResult.value) & 0xFF;
+
+        int carry_bit = 0;
+        if (cpuRegisterState.Y >= addressingResult.value) {
+            carry_bit = 1;
+        }
 
         updateStatusFlags(cpuRegisterState, result);
+        cpuRegisterState.setStatusC(carry_bit);
     }
 
     public static void DEC(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
         CPURegisterState cpuRegisterState = cpu.getRegisters();
         MainBus mainBus = cpu.getMainBus();
 
-        int result = addressingResult.value - 1;
+        int result = (addressingResult.value - 1) & 0xFF;
         mainBus.writeByte(addressingResult.address, result);
 
         updateStatusFlags(cpuRegisterState, result);
@@ -274,7 +291,7 @@ public class CPUInstructionList {
     public static void DEX(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
         CPURegisterState cpuRegisterState = cpu.getRegisters();
 
-        int result = cpuRegisterState.X - 1;
+        int result = (cpuRegisterState.X - 1) & 0xFF;
         cpuRegisterState.X = result;
 
         updateStatusFlags(cpuRegisterState, result);
@@ -283,7 +300,7 @@ public class CPUInstructionList {
     public static void DEY(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
         CPURegisterState cpuRegisterState = cpu.getRegisters();
 
-        int result = cpuRegisterState.Y - 1;
+        int result = (cpuRegisterState.Y - 1) & 0xFF;
         cpuRegisterState.Y = result;
 
         updateStatusFlags(cpuRegisterState, result);
@@ -302,7 +319,7 @@ public class CPUInstructionList {
         CPURegisterState cpuRegisterState = cpu.getRegisters();
         MainBus mainBus = cpu.getMainBus();
 
-        int result = addressingResult.value + 1;
+        int result = (addressingResult.value + 1) & 0xFF;
         mainBus.writeByte(addressingResult.address, result);
 
         updateStatusFlags(cpuRegisterState, result);
@@ -311,7 +328,7 @@ public class CPUInstructionList {
     public static void INX(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
         CPURegisterState cpuRegisterState = cpu.getRegisters();
 
-        int result = cpuRegisterState.X + 1;
+        int result = (cpuRegisterState.X + 1) & 0xFF;
         cpuRegisterState.X = result;
 
         updateStatusFlags(cpuRegisterState, result);
@@ -320,7 +337,7 @@ public class CPUInstructionList {
     public static void INY(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
         CPURegisterState cpuRegisterState = cpu.getRegisters();
 
-        int result = cpuRegisterState.Y + 1;
+        int result = (cpuRegisterState.Y + 1) & 0xFF;
         cpuRegisterState.Y = result;
 
         updateStatusFlags(cpuRegisterState, result);
@@ -557,7 +574,7 @@ public class CPUInstructionList {
         CPURegisterState cpuRegisterState = cpu.getRegisters();
 
         int result = cpuRegisterState.S;
-        cpuRegisterState.Y = result;
+        cpuRegisterState.X = result;
 
         updateStatusFlags(cpuRegisterState, result);
     }
@@ -576,8 +593,6 @@ public class CPUInstructionList {
 
         int result = cpuRegisterState.X;
         cpuRegisterState.S = result;
-
-        updateStatusFlags(cpuRegisterState, result);
     }
 
     public static void TYA(CPU cpu, ValueWithMemory addressingResult, CPUInstruction.AddressingMode addressingMode) {
